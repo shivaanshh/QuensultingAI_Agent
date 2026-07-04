@@ -6,7 +6,7 @@
 |---|----------|--------|-------|
 | 1 | Resume (PDF) | ⬜ **You attach this** | — |
 | 2 | RetellAI Agent JSON | ✅ | [`retell_conversation_flow.json`](retell_conversation_flow.json) |
-| 3 | n8n workflow **or** Python source | ✅ (Python/FastAPI) | [`app/`](app/) |
+| 3 | n8n workflow **or** Python source | ✅ **Both** provided | [`app/`](app/) (primary) + [`n8n_workflow.json`](n8n_workflow.json) (alternative) |
 | 4 | Loom walkthrough (3–5 min) | ⬜ **You record this** | script in [`LOOM_SCRIPT.md`](LOOM_SCRIPT.md) |
 
 ## Mandatory integrations

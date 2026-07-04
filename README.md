@@ -131,6 +131,7 @@ quensulting-dental-voice-agent/
 ├── tests/                 # pytest suite (23 tests, no external services)
 │   ├── test_utils.py
 │   └── test_api.py
+├── n8n_workflow.json      # alternative booking automation (importable n8n)
 ├── Dockerfile             # container image
 ├── render.yaml            # one-click Render.com Blueprint deploy
 ├── Procfile               # Railway / Heroku-style deploy
@@ -138,9 +139,16 @@ quensulting-dental-voice-agent/
 ├── requirements-dev.txt   # requirements + pytest
 ├── .env.example
 ├── SUBMISSION.md          # deliverables checklist + submission email
+├── RUN_LOCAL.md           # local + ngrok quick-demo walkthrough
+├── N8N_SETUP.md           # how to import/configure the n8n workflow
 ├── LOOM_SCRIPT.md         # walkthrough script for the recording
 └── README.md
 ```
+
+> **Automation: two options.** The primary automation is the Python/FastAPI backend in
+> `app/` (it also does the availability logic and has tests). `n8n_workflow.json` is an
+> alternative implementation of the booking step (webhook → Google Sheets → email) —
+> see `N8N_SETUP.md`. Use one or the other for the `book_appointment` tool URL.
 
 ### Run the tests
 

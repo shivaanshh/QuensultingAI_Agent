@@ -1,0 +1,114 @@
+{
+  "name": "QuensultingAI — Book Appointment",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "book-appointment",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-book",
+      "name": "Webhook (Retell book_appointment)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "quensulting-book-appointment"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Accept Retell's { call, args } envelope (webhook wraps it under .body),\n// and also a flat body. Build the record + a booking reference.\nconst root = $input.first().json.body || $input.first().json;\nconst args = root.args || root;\nconst call = root.call || {};\n\nfunction makeRef() {\n  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';\n  let s = '';\n  for (let i = 0; i < 4; i++) s += chars[Math.floor(Math.random() * chars.length)];\n  return 'QDC-' + s;\n}\n\nconst required = ['patient_name', 'phone_number', 'service', 'preferred_datetime'];\nconst missing = required.filter((k) => !String(args[k] || '').trim());\n\nconst record = {\n  timestamp: new Date().toISOString(),\n  booking_reference: makeRef(),\n  patient_name: String(args.patient_name || '').trim(),\n  phone_number: String(args.phone_number || '').trim(),\n  patient_email: String(args.patient_email || '').trim(),\n  service: String(args.service || '').trim(),\n  preferred_datetime: String(args.preferred_datetime || '').trim(),\n  confirmed_datetime: String(args.preferred_datetime || '').trim(),\n  notes: String(args.notes || '').trim(),\n  call_id: String(call.call_id || ''),\n  status: missing.length ? 'failed' : 'confirmed',\n  missing: missing.join(', ')\n};\n\nreturn [{ json: record }];"
+      },
+      "id": "build-record",
+      "name": "Build Booking Record",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Bookings",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $('Build Booking Record').item.json.timestamp }}",
+            "Booking Reference": "={{ $('Build Booking Record').item.json.booking_reference }}",
+            "Patient Name": "={{ $('Build Booking Record').item.json.patient_name }}",
+            "Phone": "={{ $('Build Booking Record').item.json.phone_number }}",
+            "Email": "={{ $('Build Booking Record').item.json.patient_email }}",
+            "Service": "={{ $('Build Booking Record').item.json.service }}",
+            "Preferred Time": "={{ $('Build Booking Record').item.json.preferred_datetime }}",
+            "Confirmed Time": "={{ $('Build Booking Record').item.json.confirmed_datetime }}",
+            "Notes": "={{ $('Build Booking Record').item.json.notes }}",
+            "Call ID": "={{ $('Build Booking Record').item.json.call_id }}",
+            "Status": "={{ $('Build Booking Record').item.json.status }}"
+          },
+          "matchingColumns": []
+        },
+        "options": {}
+      },
+      "id": "save-sheet",
+      "name": "Save to Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": $('Build Booking Record').item.json.status, \"booking_reference\": $('Build Booking Record').item.json.booking_reference, \"confirmed_datetime\": $('Build Booking Record').item.json.confirmed_datetime } }}",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond to Retell",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "fromEmail": "your-clinic-email@gmail.com",
+        "toEmail": "={{ $('Build Booking Record').item.json.patient_email }}",
+        "subject": "=Appointment Confirmed — QuensultingAI Dental Clinic ({{ $('Build Booking Record').item.json.booking_reference }})",
+        "emailFormat": "html",
+        "html": "=<div style=\"font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#1f2937\"><h2 style=\"color:#0d9488;margin-bottom:4px\">Appointment Confirmed</h2><p style=\"color:#6b7280;margin-top:0\">QuensultingAI Dental Clinic</p><p>Hi {{ $('Build Booking Record').item.json.patient_name }}, your appointment is booked. Here are the details:</p><p><b>Booking reference:</b> {{ $('Build Booking Record').item.json.booking_reference }}<br><b>Service:</b> {{ $('Build Booking Record').item.json.service }}<br><b>Date &amp; time:</b> {{ $('Build Booking Record').item.json.confirmed_datetime }}<br><b>Phone on file:</b> {{ $('Build Booking Record').item.json.phone_number }}</p><p>We're at 3rd Floor, Baner Business Hub, Baner Road, Pune 411045. Open Mon-Sat, 9 AM - 6 PM. Need to change something? Just call us back.</p></div>",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Send Confirmation Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [880, 0],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Webhook (Retell book_appointment)": {
+      "main": [[{ "node": "Build Booking Record", "type": "main", "index": 0 }]]
+    },
+    "Build Booking Record": {
+      "main": [[{ "node": "Save to Google Sheet", "type": "main", "index": 0 }]]
+    },
+    "Save to Google Sheet": {
+      "main": [[{ "node": "Respond to Retell", "type": "main", "index": 0 }]]
+    },
+    "Respond to Retell": {
+      "main": [[{ "node": "Send Confirmation Email", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "meta": {},
+  "tags": []
+}
