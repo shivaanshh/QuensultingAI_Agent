@@ -1,0 +1,39 @@
+# Render.com Blueprint — one-click deploy of the FastAPI backend.
+# Create a new "Blueprint" service, point it at this repo, and fill in the
+# env vars marked `sync: false` in the Render dashboard (they hold secrets).
+services:
+  - type: web
+    name: quensulting-dental-voice-agent
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: WEBHOOK_SECRET
+        generateValue: true          # Render generates a strong random secret
+      - key: CLINIC_TIMEZONE
+        value: Asia/Kolkata
+      - key: OPEN_HOUR
+        value: "9"
+      - key: CLOSE_HOUR
+        value: "18"
+      - key: GOOGLE_SHEETS_ID
+        sync: false
+      - key: GOOGLE_CREDENTIALS_JSON  # paste the whole service-account key here
+        sync: false
+      - key: BOOKINGS_WORKSHEET
+        value: Bookings
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: FROM_EMAIL
+        sync: false
+      - key: CLINIC_INBOX
+        sync: false
+      - key: BOOKING_WEBHOOK_URL
+        sync: false
