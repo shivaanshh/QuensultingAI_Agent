@@ -69,7 +69,7 @@ def _get_worksheet():
         ws = spreadsheet.add_worksheet(
             title=settings.BOOKINGS_WORKSHEET, rows=1000, cols=len(_HEADER)
         )
-        ws.append_row(_HEADER, value_input_option="USER_ENTERED")
+        ws.append_row(_HEADER, value_input_option="RAW")
 
     # Ensure header exists (first-run on an empty sheet).
     if not ws.acell("A1").value:
@@ -78,7 +78,11 @@ def _get_worksheet():
 
 
 def append_booking(record: dict) -> bool:
-    """Append a single booking record. Returns True on success."""
+    """Append a single booking record. Returns True on success.
+
+    Uses RAW input (not USER_ENTERED) so Sheets never auto-converts a phone
+    number into a number and silently drops a leading zero.
+    """
     row = [
         record.get("timestamp", ""),
         record.get("booking_reference", ""),
@@ -94,7 +98,7 @@ def append_booking(record: dict) -> bool:
     ]
     try:
         ws = _get_worksheet()
-        ws.append_row(row, value_input_option="USER_ENTERED")
+        ws.append_row(row, value_input_option="RAW")
         logger.info("Booking %s written to Google Sheets", record.get("booking_reference"))
         return True
     except Exception as exc:  # noqa: BLE001 - never let logging break the call
