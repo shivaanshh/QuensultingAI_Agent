@@ -40,6 +40,43 @@ def _resolve_relative_days(text: str, reference: datetime) -> str:
     return text
 
 
+# dateutil only recognizes digit hours ("12 PM"), not spelled-out ones
+# ("twelve PM") -- it silently drops the unrecognized word (fuzzy parsing)
+# and falls back to the current hour, so a caller saying "twelve PM" can
+# silently become "whatever hour it is right now, PM". Rewrite spoken
+# numbers to digits before parsing.
+_NUMBER_WORDS = {
+    "one": "1", "two": "2", "three": "3", "four": "4", "five": "5",
+    "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10",
+    "eleven": "11", "twelve": "12",
+}
+_WORD_NUMBER_RE = re.compile(r"\b(" + "|".join(_NUMBER_WORDS) + r")\b", re.IGNORECASE)
+
+
+def _resolve_word_numbers(text: str) -> str:
+    """Replace spoken hour words/'noon'/'midnight' with digits dateutil understands."""
+    text = re.sub(r"\bnoon\b", "12 PM", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bmidnight\b", "12 AM", text, flags=re.IGNORECASE)
+    return _WORD_NUMBER_RE.sub(lambda m: _NUMBER_WORDS[m.group(1).lower()], text)
+
+
+_WEEKDAY_INDEX = {name.lower(): i for i, name in enumerate(WEEKDAY_NAMES)}
+_NEXT_WEEKDAY_RE = re.compile(r"\bnext\s+(" + "|".join(_WEEKDAY_INDEX) + r")\b", re.IGNORECASE)
+
+
+def _resolve_next_weekday(text: str, reference: datetime) -> str:
+    """"next Monday" said on a Monday means next week, not today -- dateutil
+    resolves a bare weekday name to the closest occurrence (today included),
+    so force it a week forward when the caller explicitly says "next" and
+    today already is that weekday.
+    """
+    match = _NEXT_WEEKDAY_RE.search(text)
+    if match and _WEEKDAY_INDEX[match.group(1).lower()] == reference.weekday():
+        target = reference + timedelta(days=7)
+        return _NEXT_WEEKDAY_RE.sub(target.strftime("%B %d %Y"), text, count=1)
+    return text
+
+
 def generate_booking_reference() -> str:
     """Human-friendly reference, e.g. QDC-7F3K."""
     suffix = "".join(random.choices(string.ascii_uppercase + string.digits, k=4))
@@ -63,6 +100,8 @@ def parse_datetime(text: str) -> Optional[datetime]:
         # Zero minutes/seconds so "3pm" -> 3:00, not 3:<current-minute>.
         default = now_clinic().replace(minute=0, second=0, microsecond=0)
         resolved_text = _resolve_relative_days(text, default)
+        resolved_text = _resolve_word_numbers(resolved_text)
+        resolved_text = _resolve_next_weekday(resolved_text, default)
         dt = dateparser.parse(resolved_text, default=default, fuzzy=True)
     except (ValueError, OverflowError, TypeError):
         return None

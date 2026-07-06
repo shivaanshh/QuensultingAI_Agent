@@ -49,6 +49,19 @@ def test_next_weekday_still_works():
     assert parsed.hour == 15
 
 
+def test_next_same_weekday_rolls_to_next_week(monkeypatch):
+    # Regression: dateutil resolves a bare weekday name to the closest
+    # occurrence -- including *today* -- so "next Monday" said on a Monday
+    # used to silently resolve to today (often already in the past) instead
+    # of a week later.
+    monday = dt.datetime(2026, 7, 6, 20, 0, tzinfo=IST)  # a Monday evening
+    monkeypatch.setattr(utils, "now_clinic", lambda: monday)
+
+    parsed = utils.parse_datetime("next Monday at 10am")
+    assert parsed is not None
+    assert parsed.date() == dt.date(2026, 7, 13)  # a week later, not today
+
+
 def test_bare_time_zeroes_minutes():
     # "3pm" should be 15:00, not 15:<current-minute>.
     parsed = utils.parse_datetime("3pm")
@@ -59,6 +72,24 @@ def test_bare_time_zeroes_minutes():
 def test_unparseable_returns_none():
     assert utils.parse_datetime("") is None
     assert utils.parse_datetime("sometime whenever") is None
+
+
+def test_spelled_out_hour_does_not_silently_fall_back_to_now(monkeypatch):
+    # Regression: dateutil doesn't understand "twelve" (only digits), so it used
+    # to silently drop the word and fall back to the current hour. FIXED_NOW is
+    # noon, which would coincidentally match the correct answer below and hide
+    # a regression -- so freeze "now" to an evening hour instead.
+    evening = dt.datetime(2026, 7, 6, 19, 51, tzinfo=IST)
+    monkeypatch.setattr(utils, "now_clinic", lambda: evening)
+
+    parsed = utils.parse_datetime("upcoming Thursday for twelve PM")
+    assert parsed is not None
+    assert parsed.hour == 12
+    assert parsed.weekday() == 3  # Thursday
+
+    parsed = utils.parse_datetime("this Wednesday at eleven AM")
+    assert parsed is not None
+    assert parsed.hour == 11
 
 
 # --- working-hours checks -----------------------------------------------------
