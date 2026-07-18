@@ -4,22 +4,15 @@ RetellAI custom tools POST a body shaped like:
     { "call": {...}, "name": "book_appointment", "args": { ... } }
 
 We validate only the `args` we care about and keep the rest permissive, so a
-minor change on Retell's side never 500s the endpoint.
+minor change on Retell's side never 500s the endpoint. The per-tenant
+service list now lives in the `services` database table (see
+app/db_models.py) rather than a hardcoded constant here.
 """
 from __future__ import annotations
 
 from typing import Optional
 
 from pydantic import BaseModel, Field
-
-SERVICES = [
-    "Dental Cleaning",
-    "Root Canal Treatment",
-    "Teeth Whitening",
-    "Braces Consultation",
-    "Tooth Extraction",
-    "General Dental Consultation",
-]
 
 
 class RetellToolCall(BaseModel):

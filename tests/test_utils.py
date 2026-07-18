@@ -16,7 +16,7 @@ FIXED_NOW = dt.datetime(2026, 7, 4, 12, 0, tzinfo=IST)  # a Saturday
 
 @pytest.fixture(autouse=True)
 def _freeze_now(monkeypatch):
-    monkeypatch.setattr(utils, "now_clinic", lambda: FIXED_NOW)
+    monkeypatch.setattr(utils, "now_clinic", lambda *a, **k: FIXED_NOW)
 
 
 # --- booking reference --------------------------------------------------------
@@ -55,7 +55,7 @@ def test_next_same_weekday_rolls_to_next_week(monkeypatch):
     # used to silently resolve to today (often already in the past) instead
     # of a week later.
     monday = dt.datetime(2026, 7, 6, 20, 0, tzinfo=IST)  # a Monday evening
-    monkeypatch.setattr(utils, "now_clinic", lambda: monday)
+    monkeypatch.setattr(utils, "now_clinic", lambda *a, **k: monday)
 
     parsed = utils.parse_datetime("next Monday at 10am")
     assert parsed is not None
@@ -80,7 +80,7 @@ def test_spelled_out_hour_does_not_silently_fall_back_to_now(monkeypatch):
     # noon, which would coincidentally match the correct answer below and hide
     # a regression -- so freeze "now" to an evening hour instead.
     evening = dt.datetime(2026, 7, 6, 19, 51, tzinfo=IST)
-    monkeypatch.setattr(utils, "now_clinic", lambda: evening)
+    monkeypatch.setattr(utils, "now_clinic", lambda *a, **k: evening)
 
     parsed = utils.parse_datetime("upcoming Thursday for twelve PM")
     assert parsed is not None

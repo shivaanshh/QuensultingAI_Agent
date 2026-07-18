@@ -1,5 +1,6 @@
 .env
 google-credentials.json
+data/
 __pycache__/
 *.pyc
 .venv/
@@ -7,3 +8,8 @@ venv/
 .DS_Store
 .pytest_cache/
 *.egg-info/
+
+# Frontend build artifacts -- frontend/package-lock.json stays tracked.
+frontend/node_modules/
+frontend/dist/
+.claude/

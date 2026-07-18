@@ -1,23 +1,37 @@
-# Render.com Blueprint — one-click deploy of the FastAPI backend.
+# Render.com Blueprint — one-click deploy of the multi-tenant backend +
+# frontend (marketing site + admin dashboard).
 # Create a new "Blueprint" service, point it at this repo, and fill in the
 # env vars marked `sync: false` in the Render dashboard (they hold secrets).
+#
+# Docker runtime: the build stage compiles frontend/ (Vite/React) and the
+# Python image serves the result same-origin -- see the repo's Dockerfile.
+# The start command (CMD in the Dockerfile) re-runs the idempotent tenant
+# seed script on every boot so the dental tenant (and its webhook token)
+# always exists.
+#
+# NOTE: the free plan's disk is ephemeral -- every redeploy starts from a
+# fresh SQLite file. Booking history is lost on redeploy until DATABASE_URL
+# points at a real Postgres instance (a config change only, no code change
+# needed).
+#
+# Additional tenants (any of the 4 category templates) are onboarded either
+# from the /admin dashboard or with
+# `python scripts/create_tenant.py --category <key> ...` against this same
+# deployment -- see README.md "Onboarding a new tenant".
 services:
   - type: web
     name: quensulting-dental-voice-agent
-    runtime: python
+    runtime: docker
+    dockerfilePath: ./Dockerfile
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
-      - key: WEBHOOK_SECRET
-        generateValue: true          # Render generates a strong random secret
-      - key: CLINIC_TIMEZONE
-        value: Asia/Kolkata
-      - key: OPEN_HOUR
-        value: "9"
-      - key: CLOSE_HOUR
-        value: "18"
-      - key: GOOGLE_SHEETS_ID
+      # - key: DATABASE_URL          # uncomment once you have a Postgres URL
+      #   sync: false
+      - key: RETELL_API_KEY
+        sync: false
+      - key: RETELL_API_BASE
+        value: https://api.retellai.com
+      - key: BACKEND_BASE_URL        # set to this service's own Render URL
         sync: false
       - key: GOOGLE_CREDENTIALS_JSON  # paste the whole service-account key here
         sync: false
@@ -32,8 +46,4 @@ services:
       - key: SMTP_PASSWORD
         sync: false
       - key: FROM_EMAIL
-        sync: false
-      - key: CLINIC_INBOX
-        sync: false
-      - key: BOOKING_WEBHOOK_URL
         sync: false

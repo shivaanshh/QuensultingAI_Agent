@@ -6,3 +6,4 @@ gspread==6.1.4
 google-auth==2.37.0
 python-dateutil==2.9.0.post0
 httpx==0.28.1
+sqlalchemy==2.0.36

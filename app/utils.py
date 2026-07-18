@@ -2,6 +2,11 @@
 
 Callers speak dates in free-form natural language ("next Monday at 3pm"), so we
 parse leniently with dateutil and fall back gracefully when parsing fails.
+
+Every function takes the tenant's timezone/hours/weekdays/prefix as explicit
+parameters (defaulting to today's dental values) instead of reading a global
+settings singleton -- required so concurrent requests for different tenants
+never leak one tenant's hours into another's response.
 """
 from __future__ import annotations
 
@@ -9,14 +14,18 @@ import random
 import re
 import string
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Sequence
 from zoneinfo import ZoneInfo
 
 from dateutil import parser as dateparser
 
-from .config import settings
-
 WEEKDAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+DEFAULT_TIMEZONE = "Asia/Kolkata"
+DEFAULT_OPEN_HOUR = 9
+DEFAULT_CLOSE_HOUR = 18
+DEFAULT_OPEN_WEEKDAYS: tuple[int, ...] = (0, 1, 2, 3, 4, 5)  # Mon-Sat
+DEFAULT_BOOKING_PREFIX = "QDC"
 
 # dateutil has no concept of relative-day words: it silently drops any word it
 # doesn't recognize (fuzzy parsing), so "tomorrow at 8pm" quietly becomes
@@ -77,28 +86,28 @@ def _resolve_next_weekday(text: str, reference: datetime) -> str:
     return text
 
 
-def generate_booking_reference() -> str:
+def generate_booking_reference(prefix: str = DEFAULT_BOOKING_PREFIX) -> str:
     """Human-friendly reference, e.g. QDC-7F3K."""
     suffix = "".join(random.choices(string.ascii_uppercase + string.digits, k=4))
-    return f"QDC-{suffix}"
+    return f"{prefix}-{suffix}"
 
 
-def now_clinic() -> datetime:
-    return datetime.now(ZoneInfo(settings.CLINIC_TIMEZONE))
+def now_clinic(tz: str = DEFAULT_TIMEZONE) -> datetime:
+    return datetime.now(ZoneInfo(tz))
 
 
-def parse_datetime(text: str) -> Optional[datetime]:
+def parse_datetime(text: str, tz: str = DEFAULT_TIMEZONE) -> Optional[datetime]:
     """Best-effort parse of a spoken date/time into a tz-aware datetime.
 
     Returns None if the text can't be understood at all.
     """
     if not text:
         return None
-    tz = ZoneInfo(settings.CLINIC_TIMEZONE)
+    zone = ZoneInfo(tz)
     try:
         # default fills in parts the caller didn't say (e.g. no year/minute).
         # Zero minutes/seconds so "3pm" -> 3:00, not 3:<current-minute>.
-        default = now_clinic().replace(minute=0, second=0, microsecond=0)
+        default = now_clinic(tz).replace(minute=0, second=0, microsecond=0)
         resolved_text = _resolve_relative_days(text, default)
         resolved_text = _resolve_word_numbers(resolved_text)
         resolved_text = _resolve_next_weekday(resolved_text, default)
@@ -108,24 +117,30 @@ def parse_datetime(text: str) -> Optional[datetime]:
     if dt is None:
         return None
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=tz)
+        dt = dt.replace(tzinfo=zone)
     return dt
 
 
-def within_working_hours(dt: datetime) -> tuple[bool, str]:
-    """Check a datetime against clinic working hours.
+def within_working_hours(
+    dt: datetime,
+    open_hour: int = DEFAULT_OPEN_HOUR,
+    close_hour: int = DEFAULT_CLOSE_HOUR,
+    open_weekdays: Sequence[int] = DEFAULT_OPEN_WEEKDAYS,
+    tz: str = DEFAULT_TIMEZONE,
+) -> tuple[bool, str]:
+    """Check a datetime against a tenant's working hours.
 
     Returns (ok, reason). `reason` is a short human sentence usable by the agent.
     """
-    if dt.weekday() not in settings.OPEN_WEEKDAYS:
-        return False, "The clinic is closed on Sundays."
-    if dt < now_clinic():
+    if dt.weekday() not in open_weekdays:
+        return False, f"We're closed on {WEEKDAY_NAMES[dt.weekday()]}s."
+    if dt < now_clinic(tz):
         return False, "That time is in the past."
-    if not (settings.OPEN_HOUR <= dt.hour < settings.CLOSE_HOUR):
+    if not (open_hour <= dt.hour < close_hour):
         return (
             False,
             f"That time is outside our working hours of "
-            f"{settings.OPEN_HOUR} AM to {settings.CLOSE_HOUR - 12} PM.",
+            f"{open_hour} AM to {close_hour - 12} PM.",
         )
     return True, "The requested slot is within working hours."
 
@@ -144,23 +159,29 @@ def _format_12h(dt: datetime, with_minutes: bool) -> str:
     return f"{hour_str} at {rest}"
 
 
-def suggest_slots(dt: Optional[datetime]) -> str:
+def suggest_slots(
+    dt: Optional[datetime],
+    open_hour: int = DEFAULT_OPEN_HOUR,
+    close_hour: int = DEFAULT_CLOSE_HOUR,
+    open_weekdays: Sequence[int] = DEFAULT_OPEN_WEEKDAYS,
+    tz: str = DEFAULT_TIMEZONE,
+) -> str:
     """Suggest up to two nearby valid slots as a spoken-friendly string."""
-    base = dt or now_clinic()
+    base = dt or now_clinic(tz)
     suggestions: list[str] = []
     probe = base.replace(minute=0, second=0, microsecond=0)
     guard = 0
     while len(suggestions) < 2 and guard < 60:
         guard += 1
-        probe = probe.replace(hour=max(probe.hour, settings.OPEN_HOUR))
-        ok, _ = within_working_hours(probe)
+        probe = probe.replace(hour=max(probe.hour, open_hour))
+        ok, _ = within_working_hours(probe, open_hour, close_hour, open_weekdays, tz)
         if ok:
             suggestions.append(_format_12h(probe, with_minutes=False))
             probe = probe.replace(hour=probe.hour + 2)
         else:
             # jump to next day's opening hour
             probe = (probe + timedelta(days=1)).replace(
-                hour=settings.OPEN_HOUR, minute=0, second=0, microsecond=0
+                hour=open_hour, minute=0, second=0, microsecond=0
             )
     return " or ".join(suggestions)
 
