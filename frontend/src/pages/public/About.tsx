@@ -60,18 +60,25 @@ export function About() {
 
       {/* ── MISSION ──────────────────────────────────────────── */}
       <section className="py-24" style={{ background: 'var(--bg-panel)', borderBottom: '1px solid var(--bd)' }}>
-        <div className={CONTAINER}>
+        <div className={`${CONTAINER} grid items-center gap-12 lg:grid-cols-2`}>
           <motion.div {...reveal}>
             <p className="mb-4 text-sm font-bold uppercase tracking-widest" style={{ color: 'rgb(var(--ac-rgb))' }}>Our mission</p>
-            <blockquote className="max-w-3xl" style={{ fontSize: '1.7rem', fontWeight: 800, lineHeight: 1.45, letterSpacing: '-0.02em', color: 'var(--tx-1)' }}>
+            <blockquote style={{ fontSize: '1.7rem', fontWeight: 800, lineHeight: 1.45, letterSpacing: '-0.02em', color: 'var(--tx-1)' }}>
               “Answering the phone shouldn’t require hiring a front desk. Every business deserves a
               receptionist that picks up on the first ring — at 2 PM or 2 AM.”
             </blockquote>
-            <p className="mt-6 max-w-2xl" style={{ fontSize: '1.05rem', color: 'var(--tx-2)', lineHeight: 1.75 }}>
+            <p className="mt-6" style={{ fontSize: '1.05rem', color: 'var(--tx-2)', lineHeight: 1.75 }}>
               We started with one live-tested dental receptionist and turned it into a reusable
               platform: the same proven pipeline, now standing up receptionists for any industry
               from a single command — or a single click.
             </p>
+          </motion.div>
+          <motion.div {...reveal} transition={{ ...reveal.transition, delay: 0.1 }}
+            className="relative overflow-hidden rounded-2xl"
+            style={{ border: '1px solid var(--bd)', boxShadow: 'var(--shadow-lg)' }}>
+            <img src="/img/reception.jpg" alt="A customer reaching a business by phone" loading="lazy"
+              className="h-72 w-full object-cover lg:h-80" />
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(var(--ac-rgb),.22) 0%, transparent 55%)' }} />
           </motion.div>
         </div>
       </section>

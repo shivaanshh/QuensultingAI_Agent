@@ -8,7 +8,7 @@ import { fadeUp, reveal, stagger } from '../../lib/motion'
 import { AreaChart, DonutChart } from '../../components/ui/Charts'
 
 const CONTAINER = 'w-full px-[clamp(1.25rem,4vw,3.5rem)]'
-const DEMO = '/portal/quensulting-dental'
+const DEMO = '/portal/demo-glow-salon'
 
 const AGENT_FEATURES = [
   { icon: PhoneCall, title: 'Answers on the first ring', body: 'A named, natural-sounding agent picks up every call, 24/7 — no hold music, no voicemail.' },
@@ -150,7 +150,7 @@ export function Features() {
             <Link to={DEMO} className="btn-primary inline-flex items-center gap-2 rounded-xl px-7 py-3 text-base">
               Explore the live dashboard <ArrowRight className="h-4 w-4" />
             </Link>
-            <p className="mt-3 text-sm" style={{ color: 'var(--tx-3)' }}>Real data from our reference dental clinic — no signup.</p>
+            <p className="mt-3 text-sm" style={{ color: 'var(--tx-3)' }}>Sample data from a live demo salon — no signup.</p>
           </motion.div>
         </div>
       </section>

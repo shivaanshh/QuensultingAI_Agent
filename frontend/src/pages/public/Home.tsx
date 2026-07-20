@@ -19,6 +19,13 @@ const CATEGORY_ICON: Record<string, typeof Stethoscope> = {
   home_services: Wrench,
 }
 
+const CATEGORY_IMG: Record<string, string> = {
+  dental_medical: '/img/dental.jpg',
+  salon_spa: '/img/salon2.jpg',
+  restaurant: '/img/restaurant.jpg',
+  home_services: '/img/home.jpg',
+}
+
 /* ─── Rotating hero word ─────────────────────────────────────── */
 const WORDS = ['call', 'booking', 'patient', 'lead', 'reservation']
 function RotatingWord() {
@@ -367,27 +374,37 @@ export function Home() {
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {(categories ?? []).map((cat, i) => {
               const Icon = CATEGORY_ICON[cat.key] ?? PhoneCall
+              const img = CATEGORY_IMG[cat.key]
               return (
                 <motion.div key={cat.key} {...reveal} transition={{ ...reveal.transition, delay: i * 0.07 }}
-                  className="flex flex-col rounded-2xl p-6"
+                  className="group flex flex-col overflow-hidden rounded-2xl"
                   style={{ background: 'var(--bg-card)', border: '1px solid var(--bd)', boxShadow: 'var(--shadow)' }}>
-                  <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl"
-                    style={{ background: 'rgba(var(--ac-rgb),.10)', border: '1px solid rgba(var(--ac-rgb),.22)' }}>
-                    <Icon className="h-5 w-5" style={{ color: 'rgb(var(--ac-rgb))' }} />
-                  </span>
-                  <h3 className="font-bold" style={{ color: 'var(--tx-1)' }}>{cat.display_name}</h3>
-                  <p className="mt-1.5 text-sm" style={{ color: 'var(--tx-2)', lineHeight: 1.65 }}>
-                    “{cat.agent_persona_name}” handles {cat.booking_noun}s and {cat.customer_noun} inquiries around the clock.
-                  </p>
-                  {cat.default_services.length > 0 && (
-                    <ul className="mt-4 space-y-1.5 border-t pt-4 text-xs" style={{ color: 'var(--tx-3)', borderColor: 'var(--bd)' }}>
-                      {cat.default_services.slice(0, 3).map((s) => (
-                        <li key={s.name} className="flex items-center gap-1.5">
-                          <Check className="h-3 w-3" style={{ color: 'var(--success)' }} /> {s.name}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  <div className="relative h-36 overflow-hidden">
+                    {img && (
+                      <img src={img} alt={`${cat.display_name} — example workplace`} loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    )}
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0) 35%, rgba(0,0,0,.55) 100%)' }} />
+                    <span className="absolute bottom-3 left-3 flex h-10 w-10 items-center justify-center rounded-xl text-white backdrop-blur"
+                      style={{ background: 'rgba(var(--ac-rgb),.85)', boxShadow: '0 6px 18px rgba(var(--ac-rgb),.5)' }}>
+                      <Icon className="h-5 w-5" />
+                    </span>
+                  </div>
+                  <div className="flex flex-1 flex-col p-5">
+                    <h3 className="font-bold" style={{ color: 'var(--tx-1)' }}>{cat.display_name}</h3>
+                    <p className="mt-1.5 text-sm" style={{ color: 'var(--tx-2)', lineHeight: 1.65 }}>
+                      “{cat.agent_persona_name}” handles {cat.booking_noun}s and {cat.customer_noun} inquiries around the clock.
+                    </p>
+                    {cat.default_services.length > 0 && (
+                      <ul className="mt-4 space-y-1.5 border-t pt-4 text-xs" style={{ color: 'var(--tx-3)', borderColor: 'var(--bd)' }}>
+                        {cat.default_services.slice(0, 3).map((s) => (
+                          <li key={s.name} className="flex items-center gap-1.5">
+                            <Check className="h-3 w-3" style={{ color: 'var(--success)' }} /> {s.name}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 </motion.div>
               )
             })}
@@ -424,6 +441,9 @@ export function Home() {
       {/* ── CTA ──────────────────────────────────────────────── */}
       <section className="relative overflow-hidden py-24" style={{ background: 'var(--bg-panel)', borderTop: '1px solid var(--bd)' }}>
         <div className="pointer-events-none absolute inset-0">
+          <img src="/img/owner.jpg" alt="" aria-hidden="true" loading="lazy"
+            className="h-full w-full object-cover" style={{ opacity: 0.14 }} />
+          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 60% 55% at 50% 50%, transparent 0%, var(--bg-panel) 78%)' }} />
           <div className="blob absolute rounded-full opacity-[.07]"
             style={{ width: 640, height: 640, top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: 'radial-gradient(circle, rgb(var(--ac-rgb)), transparent 65%)' }} />
         </div>
